@@ -21,6 +21,8 @@ Public Class Form1
 
         AddHandler Connection.DebugOutput, AddressOf hDebug
         AddHandler Connection.ErrorOutput, AddressOf hError
+        AddHandler Connection.StartData, AddressOf hStartData
+        AddHandler Connection.EndData, AddressOf hEndData
 
     End Sub
 
@@ -30,6 +32,18 @@ Public Class Form1
 
     Private Sub hError(ByVal Title As String, ByVal data As String)
         MsgBox(data)
+    End Sub
+
+    Private Sub hStartData()
+        Cursor.Current = Cursors.WaitCursor
+        Application.DoEvents()
+
+    End Sub
+
+    Private Sub hEndData()
+        Cursor.Current = Cursors.Default
+        Application.DoEvents()
+
     End Sub
 
 #End Region

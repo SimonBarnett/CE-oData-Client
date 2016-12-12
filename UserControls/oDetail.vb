@@ -1,4 +1,6 @@
-﻿Imports Priority.OData
+﻿Imports Priority
+Imports Priority.OData
+
 Public Class oDetail
 
     Private Fields As New Dictionary(Of String, List(Of oDataField))
@@ -273,6 +275,7 @@ Public Class oDetail
                 exep = ex
 
             Finally
+                Connection.RaiseEndData()
                 .FieldEdit.Text = ""
                 ScanBuffer.Clear()
 

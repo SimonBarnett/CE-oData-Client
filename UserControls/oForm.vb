@@ -226,7 +226,7 @@ Public Class oForm
                         ViewMode = eViewMode.ViewAdd
 
                     Case eViewMode.ViewAdd
-                        Try
+                        Try                            
                             _oDataQuery.Add(_CurrencyManager.Current)
                             TryCast(_CurrencyManager.Current, oDataObject).Loading = False
                             _CurrencyManager.Refresh()
