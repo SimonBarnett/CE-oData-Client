@@ -211,10 +211,16 @@ Public Class oForm
                 If MsgBox("Delete item?", MsgBoxStyle.OkCancel) = MsgBoxResult.Ok Then
                     Try
                         _oDataQuery.Delete(Me.Selected)
+                        If Not Connection.LastError Is Nothing Then
+                            Throw Connection.LastError
+                        End If
+
                         ListView.Items.RemoveAt(ListView.SelectedIndices(0))
+                        _CurrencyManager.Refresh()
 
                     Catch ex As Exception
                         MsgBox(ex.Message)
+                        Connection.LastError = Nothing
 
                     End Try
                 End If
@@ -227,15 +233,19 @@ Public Class oForm
 
                     Case eViewMode.ViewAdd
                         Try                            
-                            _oDataQuery.Add(_CurrencyManager.Current)
-                            TryCast(_CurrencyManager.Current, oDataObject).Loading = False
+                            _oDataQuery.Add(_CurrencyManager.Current)                            
+                            If Not Connection.LastError Is Nothing Then
+                                Throw Connection.LastError
+                            End If
+
                             _CurrencyManager.Refresh()
 
                             ListView.Items.Add(New oListViewItem(_CurrencyManager.Current))
                             ViewMode = eViewMode.ViewTable
 
                         Catch ex As Exception
-                            MsgBox(ex.Message)
+                            MsgBox(ex.Message, , "Add Row.")
+                            Connection.LastError = Nothing
 
                         End Try
 

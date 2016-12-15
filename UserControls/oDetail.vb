@@ -263,6 +263,8 @@ Public Class oDetail
             Try
                 If ScanBuffer.Value.Length > 0 Then
                     .PropertyInfo.SetValue(_Parent.CurrencyManager.Current, .FieldEdit.Text, Nothing)
+                    If Not Connection.LastError Is Nothing Then Throw Connection.LastError
+
                     .FieldText.Text = .FieldEdit.Text
                     If Not _Parent.ViewMode = eViewMode.ViewAdd Then
                         TryCast(_Parent.ListView.Items(_Parent.ListView.SelectedIndices(0)), oListViewItem).UpdateRow()
@@ -278,6 +280,7 @@ Public Class oDetail
                 Connection.RaiseEndData()
                 .FieldEdit.Text = ""
                 ScanBuffer.Clear()
+                Connection.LastError = Nothing
 
             End Try
 

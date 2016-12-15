@@ -95,7 +95,17 @@ Public Class Form1
     Private Sub hNavigateChild(ByVal Key As Integer, ByRef oDataQuery As oDataQuery)
         With Me.Controls
             With oDataQuery
-                .Load()
+                Try
+                    .Load()
+                    If Not Connection.LastError Is Nothing Then Throw Connection.LastError
+
+                Catch ex As Exception
+                    MsgBox(ex.Message, , "Load data.")
+                    Connection.LastError = Nothing
+                    Exit Sub
+
+                End Try
+
                 'If .Parent Is Nothing Then
 
                 'Else
