@@ -5,9 +5,17 @@ Public Class oDetail
 
     Private Fields As New Dictionary(Of String, List(Of oDataField))
     Private SelectedField As oDataField = Nothing
-    Private ScanBuffer As ScanBuffer
+    Private _ScanBuffer As ScanBuffer
+
+#Region "Constructor"
 
     Private _Parent As oForm
+
+    ''' <summary>
+    ''' Detail Form constructor
+    ''' </summary>
+    ''' <param name="Parent">The oForm this control belongs to.</param>
+    ''' <remarks>Constructor initialises the _ScanBuffer and sets events handlers.</remarks>
     Sub New(ByRef Parent As oForm)
 
         ' This call is required by the Windows Form Designer.
@@ -15,19 +23,26 @@ Public Class oDetail
 
         ' Add any initialization after the InitializeComponent() call.
         _Parent = Parent
-        ScanBuffer = New ScanBuffer
+        _ScanBuffer = New ScanBuffer
 
         Fields.Add("main", New List(Of oDataField))
 
         With TabControl1
             AddHandler .KeyDown, AddressOf hKeyDown
             AddHandler .TabPages(0).Paint, AddressOf hTabPaint
-            AddHandler .KeyPress, AddressOf ScanBuffer.hKeypress
+            AddHandler .KeyPress, AddressOf _ScanBuffer.hKeypress
+            AddHandler .SelectedIndexChanged, AddressOf hTabClick
         End With
-        AddHandler ScanBuffer.BufferChanged, AddressOf hBufferChanged
+        AddHandler _ScanBuffer.BufferChanged, AddressOf hBufferChanged
 
     End Sub
 
+    ''' <summary>
+    ''' Adds a field to the detail form.
+    ''' </summary>
+    ''' <param name="oDataField">The oDataField interface control that displays the field</param>
+    ''' <remarks>oDataFields have custom attributes todetermine screen layout. 
+    ''' The screen layout occurs when the Sort method is called.</remarks>
     Public Sub AddField(ByVal oDataField As oDataField)
         With oDataField
 
@@ -35,7 +50,7 @@ Public Class oDetail
 
             With .PropertyInfo
                 If .Tab Is Nothing Then
-                    Fields("main").Add(oDataField)                    
+                    Fields("main").Add(oDataField)
                 Else
                     Dim f As Boolean = False
                     For Each TabPage As TabPage In Me.TabControl1.TabPages
@@ -59,7 +74,11 @@ Public Class oDetail
         End With
     End Sub
 
-    Public Sub Sort(ByRef oForm As oForm)
+    ''' <summary>
+    ''' Layout the detail forms controls. 
+    ''' </summary>    
+    ''' <remarks>The Sort method preforms layout for the controls in the form, sorted by tab and pos attribute.</remarks>
+    Public Sub Sort()
 
         With TabControl1
             If .TabPages(0).Controls.Count = 0 Then
@@ -126,6 +145,38 @@ Public Class oDetail
 
     End Sub
 
+#End Region
+
+#Region "Pubic Properties"
+
+    Public ReadOnly Property ScanBuffer() As ScanBuffer
+        Get
+            Return _ScanBuffer
+        End Get
+    End Property
+
+#End Region
+
+#Region "Event Handlers"
+
+    Private UserClick As Boolean = True
+    Private Sub hTabClick(ByVal sender As Object, ByVal e As System.EventArgs)
+        If UserClick And _ScanBuffer.Value.Length > 0 Then
+            Try
+                ProcessBuffer()
+
+            Catch ex As Exception
+                With _Parent.ListView
+                    MsgBox(ex.Message, , SelectedField.DisplayName)
+
+                End With
+
+            End Try
+
+        End If
+
+    End Sub
+
     Private Sub hTabPaint(ByVal sender As System.Object, ByVal e As System.Windows.Forms.PaintEventArgs)
 
         For Each oDataField As oDataField In TryCast(sender, TabPage).Controls
@@ -151,7 +202,7 @@ Public Class oDetail
 
         If Not SelectedField Is Nothing Then
             Try
-                ProcessBuffer()                
+                ProcessBuffer()
 
             Catch EX As Exception
                 Exit Sub
@@ -170,6 +221,65 @@ Public Class oDetail
 
     End Sub
 
+#End Region
+
+#Region "Scan Buffer"
+
+    ''' <summary>
+    ''' Process the scan buffer
+    ''' </summary>
+    ''' <remarks>This method processes the contents of the scan buffer, or throws an exception</remarks>
+    Public Sub ProcessBuffer()
+
+        Dim exep As Exception = Nothing
+        With SelectedField
+            Try
+                If _ScanBuffer.Value.Length > 0 Then
+                    .PropertyInfo.SetValue(_Parent.CurrencyManager.Current, .FieldEdit.Text, Nothing)
+                    If Not Connection.LastError Is Nothing Then Throw Connection.LastError
+
+                    .FieldText.Text = .FieldEdit.Text
+                    If Not _Parent.ViewMode = eViewMode.ViewAdd Then
+                        TryCast(_Parent.ListView.Items(_Parent.ListView.SelectedIndices(0)), oListViewItem).UpdateRow()
+                    End If
+
+                End If
+                .FieldMode = eFieldMode.View
+
+            Catch ex As Exception
+                exep = ex
+                UserClick = False
+                TabControl1.SelectedIndex = SelectedField.TabPageIndex
+                UserClick = True
+
+            Finally
+                .FieldEdit.Text = ""
+                _ScanBuffer.Clear()
+                Connection.LastError = Nothing
+                Connection.RaiseEndData()
+
+            End Try
+
+            If Not exep Is Nothing Then
+                Throw exep
+            End If
+
+        End With
+
+    End Sub
+
+    Private Sub hBufferChanged()
+        If Not SelectedField Is Nothing Then
+            Select Case _ScanBuffer.is2d
+                Case True
+                    SelectedField.FieldEdit.Text = String.Empty
+                Case Else
+                    SelectedField.FieldEdit.Text = _ScanBuffer.Value
+            End Select
+        End If
+
+    End Sub
+
     Private Sub hKeyDown(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyEventArgs)
         If Not SelectedField Is Nothing Then
             Select Case e.KeyValue
@@ -182,8 +292,8 @@ Public Class oDetail
                 Case 8
                     e.Handled = True
 
-                    If (Not ScanBuffer.is2d) Then
-                        ScanBuffer.BackSpace()
+                    If (Not _ScanBuffer.is2d) Then
+                        _ScanBuffer.BackSpace()
                     End If
 
 
@@ -203,7 +313,7 @@ Public Class oDetail
                 Case 32, 113
                     e.Handled = True
 
-                    'If _ScanBuffer.Length = 0 Then
+                    'If __ScanBuffer.Length = 0 Then
                     '    ParentForm.thisHandler.AltEntry(Me)
                     'End If
 
@@ -216,7 +326,7 @@ Public Class oDetail
                     With SelectedField
                         Try
                             ProcessBuffer()
-                            hClickSelector(SelectedField.NextControl, New System.EventArgs)
+                            hClickSelector(.NextControl, New System.EventArgs)
 
                         Catch ex As Exception
                             MsgBox(ex.Message, , .DisplayName)
@@ -224,26 +334,6 @@ Public Class oDetail
                         End Try
 
                     End With
-
-
-                    'If Me.Selected Then
-                    '    _IgnoreClick = True
-
-                    '    Dim ex As New Exception
-                    '    ProcessBuffer(ex)
-
-                    '    If IsNothing(ex) Then
-
-                    '        If thisColumn.Value.Length > 0 Then
-                    '            Deselect()
-                    '            Parent.NextControl(True)
-                    '        End If
-
-                    '    Else
-                    '        MsgBox(ex.Message, , thisColumn.Title)
-                    '    End If
-
-                    'End If
 
                 Case 63, 46, 112
                     'e.Handled = True
@@ -256,51 +346,6 @@ Public Class oDetail
 
     End Sub
 
-    Private Sub ProcessBuffer()
-
-        Dim exep As Exception = Nothing
-        With SelectedField
-            Try
-                If ScanBuffer.Value.Length > 0 Then
-                    .PropertyInfo.SetValue(_Parent.CurrencyManager.Current, .FieldEdit.Text, Nothing)
-                    If Not Connection.LastError Is Nothing Then Throw Connection.LastError
-
-                    .FieldText.Text = .FieldEdit.Text
-                    If Not _Parent.ViewMode = eViewMode.ViewAdd Then
-                        TryCast(_Parent.ListView.Items(_Parent.ListView.SelectedIndices(0)), oListViewItem).UpdateRow()
-                    End If
-
-                End If
-                .FieldMode = eFieldMode.View
-
-            Catch ex As Exception
-                exep = ex
-
-            Finally
-                Connection.RaiseEndData()
-                .FieldEdit.Text = ""
-                ScanBuffer.Clear()
-                Connection.LastError = Nothing
-
-            End Try
-
-            If Not exep Is Nothing Then
-                Throw exep
-            End If
-
-        End With
-    End Sub
-
-    Private Sub hBufferChanged()
-        If Not SelectedField Is Nothing Then
-            Select Case ScanBuffer.is2d
-                Case True
-                    SelectedField.FieldEdit.Text = String.Empty
-                Case Else
-                    SelectedField.FieldEdit.Text = ScanBuffer.Value
-            End Select
-        End If
-
-    End Sub
+#End Region
 
 End Class

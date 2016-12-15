@@ -92,9 +92,7 @@ Public Class oForm
 
         End With
 
-        With oDetail
-            .Sort(Me)
-        End With
+        oDetail.Sort()
 
         With Me.oDataObjectView.Controls
             .Add(oDetail)
@@ -173,6 +171,7 @@ Public Class oForm
             .Buttons(eViewMode.ViewDelete).Enabled = enabled And Not ViewMode = eViewMode.ViewForm
             .Buttons(eViewMode.ViewAdd).Enabled = Not ViewMode = eViewMode.ViewForm
         End With
+
     End Sub
 
     Private Sub hChildClick(ByVal i As Integer)
@@ -181,7 +180,6 @@ Public Class oForm
     End Sub
 
     Private Sub hSiblingClick(ByVal i As Integer)
-
         _oDataQuery.SibligQuery(i).oDataQuery.Load()
         Me.oDataObjectView.Controls.Clear()
         DrawForm(i, _oDataQuery.SibligQuery(i).oDataQuery)
@@ -232,8 +230,14 @@ Public Class oForm
                         ViewMode = eViewMode.ViewAdd
 
                     Case eViewMode.ViewAdd
-                        Try                            
-                            _oDataQuery.Add(_CurrencyManager.Current)                            
+                        Try
+                            With TryCast(Me.oDataObjectView.Controls(0), oDetail)
+                                If .ScanBuffer.Length > 0 Then
+                                    .ProcessBuffer()
+                                End If
+                            End With
+
+                            _oDataQuery.Add(_CurrencyManager.Current)
                             If Not Connection.LastError Is Nothing Then
                                 Throw Connection.LastError
                             End If
