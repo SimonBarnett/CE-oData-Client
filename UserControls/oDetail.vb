@@ -122,26 +122,35 @@ Public Class oDetail
             t += 1
 
         Next
+        If ordered.Count > 0 Then
+            If ordered.Count > 1 Then
+                For i As Integer = 0 To ordered.Count - 1
+                    With ordered(i)
+                        Select Case i
+                            Case 0
+                                .SetPrevious(ordered(i + 1))
+                                .SetNext(ordered(ordered.Count - 1))
 
-        For i As Integer = 0 To ordered.Count - 1
-            With ordered(i)
-                Select Case i
-                    Case 0
-                        .SetPrevious(ordered(i + 1))
-                        .SetNext(ordered(ordered.Count - 1))
+                            Case ordered.Count - 1
+                                .SetPrevious(ordered(0))
+                                .SetNext(ordered(i - 1))
 
-                    Case ordered.Count - 1
-                        .SetPrevious(ordered(0))
-                        .SetNext(ordered(i - 1))
+                            Case Else
+                                .SetNext(ordered(i - 1))
+                                .SetPrevious(ordered(i + 1))
 
-                    Case Else
-                        .SetNext(ordered(i - 1))
-                        .SetPrevious(ordered(i + 1))
+                        End Select
+                    End With
 
-                End Select
-            End With
+                Next
+            Else
+                With ordered(0)
+                    .SetNext(Nothing)
+                    .SetPrevious(Nothing)
+                End With
 
-        Next
+            End If
+        End If
 
     End Sub
 
@@ -201,23 +210,27 @@ Public Class oDetail
     Private Sub hClickSelector(ByVal sender As System.Object, ByVal e As System.EventArgs)
 
         If Not SelectedField Is Nothing Then
-            Try
-                ProcessBuffer()
+            With SelectedField
+                Try
+                    ProcessBuffer()                    
 
-            Catch EX As Exception
-                Exit Sub
+                Catch ex As Exception
+                    MsgBox(ex.Message, , .DisplayName)
+                    Exit Sub
 
-            End Try
+                End Try
+
+            End With
         End If
 
         SelectedField = sender
-        SelectedField.FieldMode = eFieldMode.Edit
-        StatusBar.Text = SelectedField.DisplayName
+        If Not sender Is Nothing Then
+            SelectedField.FieldMode = eFieldMode.Edit
+            StatusBar.Text = SelectedField.DisplayName
+            TabControl1.SelectedIndex = SelectedField.TabPageIndex
+        End If
 
-        With TabControl1
-            .SelectedIndex = SelectedField.TabPageIndex
-            .Focus()
-        End With
+        TabControl1.Focus()        
 
     End Sub
 
