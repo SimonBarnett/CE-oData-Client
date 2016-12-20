@@ -19,6 +19,9 @@ Public Class oForm
 #End Region
 
     Private dfa As New List(Of oDataField)
+
+#Region "Properties"
+
     Private WithEvents _CurrencyManager As CurrencyManager
     Public Property CurrencyManager() As CurrencyManager
         Get
@@ -29,25 +32,11 @@ Public Class oForm
         End Set
     End Property
 
-#Region "Constructor"
-
-    Private _Parent As Form
-    Public Sub New(ByRef Parent As Form, ByVal Key As Integer, ByRef oDataQuery As oDataQuery)
-
-        ' This call is required by the Windows Form Designer.
-        InitializeComponent()
-
-        ' Add any initialization after the InitializeComponent() call.
-        _Parent = Parent        
-
-        DrawForm(Key, oDataQuery)
-
-        ' Add control handlers
-        AddHandler ListView.SelectedIndexChanged, AddressOf ListView_SelectedIndexChanged
-        AddHandler tabSibling.Navigate, AddressOf hSiblingClick
-        AddHandler tabChild.Navigate, AddressOf hChildClick
-
-    End Sub
+    Public ReadOnly Property thisDetail() As oDetail
+        Get
+            Return TryCast(Me.oDataObjectView.Controls(0), oDetail)
+        End Get
+    End Property
 
     Public ReadOnly Property FormTitle() As String
         Get
@@ -61,6 +50,28 @@ Public Class oForm
             Return _oDataQuery
         End Get
     End Property
+
+#End Region
+
+#Region "Constructor"
+
+    Private _Parent As Form
+    Public Sub New(ByRef Parent As Form, ByVal Key As Integer, ByRef oDataQuery As oDataQuery)
+
+        ' This call is required by the Windows Form Designer.
+        InitializeComponent()
+
+        ' Add any initialization after the InitializeComponent() call.
+        _Parent = Parent
+
+        DrawForm(Key, oDataQuery)
+
+        ' Add control handlers
+        AddHandler ListView.SelectedIndexChanged, AddressOf ListView_SelectedIndexChanged
+        AddHandler tabSibling.Navigate, AddressOf hSiblingClick
+        AddHandler tabChild.Navigate, AddressOf hChildClick
+
+    End Sub
 
     Private _ClassProperties As ClassProperties = Nothing
     Private Sub DrawForm(ByVal Key As Integer, ByRef oDataQuery As oDataQuery)
@@ -168,8 +179,8 @@ Public Class oForm
         With ToolBar
             .Buttons(eViewMode.ViewUp).Enabled = Not _oDataQuery.Parent Is Nothing
             .Buttons(eViewMode.ViewForm).Enabled = enabled
-            .Buttons(eViewMode.ViewDelete).Enabled = enabled And Not ViewMode = eViewMode.ViewForm
-            .Buttons(eViewMode.ViewAdd).Enabled = Not ViewMode = eViewMode.ViewForm
+            .Buttons(eViewMode.ViewDelete).Enabled = enabled And Not ViewMode = eViewMode.ViewAdd
+            .Buttons(eViewMode.ViewAdd).Enabled = True
         End With
 
     End Sub
@@ -191,17 +202,57 @@ Public Class oForm
     Private Sub ToolBar1_ButtonClick(ByVal sender As Object, ByVal e As System.Windows.Forms.ToolBarButtonClickEventArgs) Handles ToolBar.ButtonClick
         Select Case e.Button.Tag
             Case "up"
-                RaiseEvent NavigateUp()
+                Select Case ViewMode
+                    Case eViewMode.ViewTable
+                        RaiseEvent NavigateUp()
+
+                    Case eViewMode.ViewForm
+                        Try
+                            With thisDetail
+                                If .ScanBuffer.Length > 0 Then
+                                    .ProcessBuffer()
+                                End If
+                            End With
+                            RaiseEvent NavigateUp()
+
+                        Catch ex As Exception
+                            MsgBox(ex.Message, , "Navigate up.")
+                            Connection.LastError = Nothing
+
+                        End Try
+
+                    Case eViewMode.ViewAdd
+                        If CancelAddRow() Then RaiseEvent NavigateUp()
+
+                End Select
 
             Case "view"
-                Select Case e.Button.ImageIndex
+                Select Case ViewMode
                     Case eViewMode.ViewTable
                         e.Button.ImageIndex = eViewMode.ViewForm
                         ViewMode = eViewMode.ViewForm
 
-                    Case eViewMode.ViewForm, eViewMode.ViewAdd
-                        e.Button.ImageIndex = eViewMode.ViewTable
-                        ViewMode = eViewMode.ViewTable
+                    Case eViewMode.ViewForm
+                        Try
+                            With thisDetail
+                                If .ScanBuffer.Length > 0 Then
+                                    .ProcessBuffer()
+                                End If
+                            End With
+                            e.Button.ImageIndex = eViewMode.ViewTable
+                            ViewMode = eViewMode.ViewTable
+
+                        Catch ex As Exception
+                            MsgBox(ex.Message, , "Switch view.")
+                            Connection.LastError = Nothing
+
+                        End Try
+
+                    Case eViewMode.ViewAdd
+                        If CancelAddRow() Then
+                            e.Button.ImageIndex = eViewMode.ViewTable
+                            ViewMode = eViewMode.ViewTable
+                        End If
 
                 End Select
 
@@ -225,13 +276,17 @@ Public Class oForm
 
             Case "add"
                 Select Case ViewMode
-                    Case eViewMode.ViewTable
-                        _CurrencyManager.AddNew()
+                    Case eViewMode.ViewTable, eViewMode.ViewForm
+                        With _CurrencyManager
+                            .AddNew()
+                            TryCast(.Current, oDataObject).Parent = _oDataQuery.Parent
+                        End With
+
                         ViewMode = eViewMode.ViewAdd
 
                     Case eViewMode.ViewAdd
                         Try
-                            With TryCast(Me.oDataObjectView.Controls(0), oDetail)
+                            With thisDetail
                                 If .ScanBuffer.Length > 0 Then
                                     .ProcessBuffer()
                                 End If
@@ -244,7 +299,10 @@ Public Class oForm
 
                             _CurrencyManager.Refresh()
 
-                            ListView.Items.Add(New oListViewItem(_CurrencyManager.Current))
+                            Dim lvi As oListViewItem = New oListViewItem(_CurrencyManager.Current)
+                            lvi.Selected = True
+
+                            ListView.Items.Add(lvi)
                             ViewMode = eViewMode.ViewTable
 
                         Catch ex As Exception
@@ -259,6 +317,19 @@ Public Class oForm
         End Select
 
     End Sub
+
+    Private Function CancelAddRow() As Boolean
+        If MsgBox("Cancel creation of new record?", MsgBoxStyle.OkCancel, "Cancel?") = MsgBoxResult.Ok Then
+            With _CurrencyManager
+                .RemoveAt(.Count - 1)
+                .Refresh()
+            End With
+
+            Return True
+        Else
+            Return False
+        End If
+    End Function
 
     Private _mode As eViewMode = eViewMode.ViewTable
     Public Property ViewMode() As eViewMode
@@ -278,6 +349,7 @@ Public Class oForm
                             .Dock = DockStyle.Fill
                             .BringToFront()
                             ListView.Focus()
+                            ListView.Items(_CurrencyManager.Position).Selected = True
                         End With
 
                     Case eViewMode.ViewForm, eViewMode.ViewAdd

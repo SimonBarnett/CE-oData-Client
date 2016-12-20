@@ -133,9 +133,9 @@ Partial Public Class oForm
         '
         Me.oDataObjectView.AutoScroll = True
         Me.oDataObjectView.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.oDataObjectView.Location = New System.Drawing.Point(0, 24)
+        Me.oDataObjectView.Location = New System.Drawing.Point(0, 0)
         Me.oDataObjectView.Name = "oDataObjectView"
-        Me.oDataObjectView.Size = New System.Drawing.Size(237, 329)
+        Me.oDataObjectView.Size = New System.Drawing.Size(237, 353)
         Me.oDataObjectView.Visible = False
         '
         'tabChild
@@ -158,9 +158,9 @@ Partial Public Class oForm
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(96.0!, 96.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi
-        Me.Controls.Add(Me.oDataObjectView)
         Me.Controls.Add(Me.ToolBar)
         Me.Controls.Add(Me.oQueryView)
+        Me.Controls.Add(Me.oDataObjectView)
         Me.Name = "oForm"
         Me.Size = New System.Drawing.Size(237, 353)
         Me.oQueryView.ResumeLayout(False)

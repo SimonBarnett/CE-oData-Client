@@ -103,6 +103,7 @@ Public Class oDataField
 
         _CustomProperties = prop
         _Parent = oForm
+        Me.Name = _CustomProperties.Name
 
         With FieldSelector
             .Text = DisplayName            

@@ -310,7 +310,7 @@ Public Class oDetail
                     End If
 
 
-                Case 40, 39, 38, 37, 237, 238
+                Case 40, 38, 237, 238
                     e.Handled = True
                     Dim ex As New Exception
 
@@ -322,6 +322,8 @@ Public Class oDetail
                             hClickSelector(SelectedField.PreviousControl, New System.EventArgs)
 
                     End Select
+
+                Case 39, 37 ' left / right
 
                 Case 32, 113
                     e.Handled = True
@@ -348,11 +350,11 @@ Public Class oDetail
 
                     End With
 
-                Case 63, 46, 112
-                    'e.Handled = True
-                    'With thisColumn
-                    '    MsgBox(.Help, MsgBoxStyle.OkOnly, .Title)
-                    'End With
+                Case 36, 112
+                    e.Handled = True
+                    With SelectedField.PropertyInfo
+                        MsgBox(.help, , .DisplayName)
+                    End With
 
             End Select
         End If
