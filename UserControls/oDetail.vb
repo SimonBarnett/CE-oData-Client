@@ -170,9 +170,9 @@ Public Class oDetail
 
     Private UserClick As Boolean = True
     Private Sub hTabClick(ByVal sender As Object, ByVal e As System.EventArgs)
-        If UserClick And _ScanBuffer.Value.Length > 0 Then
+        If UserClick Then
             Try
-                ProcessBuffer()
+                If _ScanBuffer.Value.Length > 0 Then ProcessBuffer()
 
             Catch ex As Exception
                 With _Parent.ListView
@@ -226,7 +226,7 @@ Public Class oDetail
         SelectedField = sender
         If Not sender Is Nothing Then
             SelectedField.FieldMode = eFieldMode.Edit
-            StatusBar.Text = SelectedField.DisplayName
+            StatusBar.Text = String.Format("{0}: {1}", SelectedField.DisplayName, SelectedField.FieldText.Text)
             TabControl1.SelectedIndex = SelectedField.TabPageIndex
         End If
 
@@ -293,14 +293,29 @@ Public Class oDetail
 
     End Sub
 
+    Private Function FirstField(ByVal TabIndex As Integer) As oDataField
+        With TabControl1.TabPages(TabIndex)
+            For i As Integer = .Controls.Count - 1 To 0 Step -1
+                If Not TryCast(.Controls(i), oDataField).ReadOnly Then
+                    Return TryCast(.Controls(i), oDataField)
+                End If
+            Next
+        End With
+        Return Nothing
+    End Function
+
+    Public Sub FirstCursor()
+        hClickSelector(FirstField(0), New System.EventArgs)
+    End Sub
+
     Private Sub hKeyDown(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyEventArgs)
         If Not SelectedField Is Nothing Then
             Select Case e.KeyValue
                 Case 27
                     e.Handled = True
-                    'If MsgBox("Click ok to reset and close the form.", MsgBoxStyle.OkCancel, "Reset?") = MsgBoxResult.Ok Then
-                    '    _Parent.ParentForm.thisHandler.ResetForm(Me.ParentForm)
-                    'End If
+                    If _Parent.ViewMode = eViewMode.ViewAdd Then
+                        _Parent.CancelAddRow()
+                    End If
 
                 Case 8
                     e.Handled = True
@@ -324,6 +339,29 @@ Public Class oDetail
                     End Select
 
                 Case 39, 37 ' left / right
+                    e.Handled = True
+                    Dim NextTab As Integer
+                    Select Case e.KeyValue
+                        Case 39
+                            Select Case TabControl1.SelectedIndex
+                                Case 0
+                                    NextTab = TabControl1.TabPages.Count - 1
+                                Case Else
+                                    NextTab = TabControl1.SelectedIndex - 1
+
+                            End Select
+
+                        Case 37
+                            Select Case TabControl1.SelectedIndex
+                                Case TabControl1.TabPages.Count - 1
+                                    NextTab = 0
+                                Case Else
+                                    NextTab = TabControl1.SelectedIndex + 1
+
+                            End Select
+
+                    End Select
+                    hClickSelector(FirstField(NextTab), New System.EventArgs)
 
                 Case 32, 113
                     e.Handled = True

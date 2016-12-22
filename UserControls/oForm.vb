@@ -145,6 +145,7 @@ Public Class oForm
         End With
 
         setButtons()
+        ViewMode = eViewMode.ViewTable
 
     End Sub
 
@@ -277,11 +278,7 @@ Public Class oForm
             Case "add"
                 Select Case ViewMode
                     Case eViewMode.ViewTable, eViewMode.ViewForm
-                        With _CurrencyManager
-                            .AddNew()
-                            TryCast(.Current, oDataObject).Parent = _oDataQuery.Parent
-                        End With
-
+                        _CurrencyManager.AddNew()
                         ViewMode = eViewMode.ViewAdd
 
                     Case eViewMode.ViewAdd
@@ -318,7 +315,7 @@ Public Class oForm
 
     End Sub
 
-    Private Function CancelAddRow() As Boolean
+    Public Function CancelAddRow() As Boolean
         If MsgBox("Cancel creation of new record?", MsgBoxStyle.OkCancel, "Cancel?") = MsgBoxResult.Ok Then
             With _CurrencyManager
                 .RemoveAt(.Count - 1)
@@ -358,7 +355,8 @@ Public Class oForm
                             .Dock = DockStyle.Fill
                             .Visible = True
                             .BringToFront()
-                            With TryCast(.Controls(0), oDetail)
+                            With TryCast(.Controls(0), oDetail)                                
+                                .FirstCursor()
                                 .TabControl1.Focus()
                             End With
                         End With
