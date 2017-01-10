@@ -16,8 +16,10 @@ Public Class Form1
             With .Debug
                 .ShowAll()
                 .ShowHeaders = False
-            End With
+            End With            
         End With
+
+        Dim dt As Data.DataTable = Connection.sqlData.ExecuteReader("Select top 1 * from PART")
 
         AddHandler Connection.DebugOutput, AddressOf hDebug
         AddHandler Connection.ErrorOutput, AddressOf hError

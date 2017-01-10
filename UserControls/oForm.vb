@@ -346,7 +346,9 @@ Public Class oForm
                             .Dock = DockStyle.Fill
                             .BringToFront()
                             ListView.Focus()
-                            ListView.Items(_CurrencyManager.Position).Selected = True
+                            If _CurrencyManager.Position > -1 Then
+                                ListView.Items(_CurrencyManager.Position).Selected = True
+                            End If
                         End With
 
                     Case eViewMode.ViewForm, eViewMode.ViewAdd

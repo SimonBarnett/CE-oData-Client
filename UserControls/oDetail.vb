@@ -313,11 +313,15 @@ Public Class oDetail
             Select Case e.KeyValue
                 Case 27
                     e.Handled = True
-                    If _Parent.ViewMode = eViewMode.ViewAdd Then
-                        _Parent.CancelAddRow()
-                    End If
+                    With _Parent
+                        If .ViewMode = eViewMode.ViewAdd Then
+                            If _Parent.CancelAddRow() Then
+                                .ViewMode = eViewMode.ViewTable
+                            End If
+                        End If
+                    End With
 
-                Case 8
+                Case 8, 32
                     e.Handled = True
 
                     If (Not _ScanBuffer.is2d) Then
